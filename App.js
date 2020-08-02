@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Turn from './Turn';
 import Sound from 'react-native-sound';
+import Fullscreen, {ToggleView} from 'react-native-full-screen';
 
 export default class App extends React.Component {
   state = {
@@ -19,11 +20,6 @@ export default class App extends React.Component {
     finnished: false,
     winner: '',
   };
-  sound = new Sound('changeTurn.mp3', Sound.MAIN_BUNDLE, (error) => {
-    if(error)
-    console.log('failed to load the sound', error, Sound.MAIN_BUNDLE);
-    return;
-  });
   checkIfGameStarted = () => this.state.started === true;
   startGame = () =>
     this.setState(
@@ -33,6 +29,7 @@ export default class App extends React.Component {
       this.changeTurn,
     );
   stopGame = () => {
+    this.playFinnishSound();
     clearInterval(this.playerOneInt);
     clearInterval(this.playerTwoInt);
     this.setState({
@@ -40,7 +37,19 @@ export default class App extends React.Component {
     });
     this.checkWinner();
   };
-  componentDidMount = () => this.sound.play();
+  componentDidMount = () => {
+    Fullscreen.onFullScreen();
+    Sound.setCategory('Playback');
+  };
+  playFinnishSound = () => {
+    let beep = new Sound('finish_game.mp3', Sound.MAIN_BUNDLE, (error) => {
+      if (error) {
+        console.log('failed to load the sound', error, Sound.MAIN_BUNDLE);
+        return;
+      }
+      beep.play();
+    });
+  };
   changeTurn = () =>
     this.setState(
       (prevState) => ({
@@ -50,6 +59,17 @@ export default class App extends React.Component {
     );
   startTimers = () => {
     const {turn, finnished} = this.state;
+    let changeSound = new Sound(
+      'change_turn.mp3',
+      Sound.MAIN_BUNDLE,
+      (error) => {
+        if (error) {
+          console.log('failed to load the sound', error, Sound.MAIN_BUNDLE);
+          return;
+        }
+        changeSound.play();
+      },
+    );
     if (this.checkIfGameStarted() && !finnished) {
       if (turn === 'playerOne') {
         clearInterval(this.playerOneInt);
@@ -114,51 +134,49 @@ export default class App extends React.Component {
     const {turn, started, finnished, winner} = this.state,
       {width} = Dimensions.get('screen');
     return (
-      <>
+      <ToggleView style={styles.container}>
         <StatusBar hidden />
-        <View style={styles.container}>
-          <View style={styles.buttonWithTimer}>
-            <TouchableOpacity
-              disabled={this.checkPlayerOne()}
-              onPress={this.changeTurn}>
-              <View style={[styles.buttons, styles.up, {width}]}>
-                <Text style={[styles.buttonsText, styles.rotatedText]}>
-                  Player 1
-                </Text>
-              </View>
-            </TouchableOpacity>
-            <Text style={[styles.timers, styles.rotatedText]}>
-              {this.getPlayerOneTime()}
-            </Text>
-          </View>
-          {!finnished && started && <Turn player={turn} />}
-          {!started && (
-            <TouchableOpacity onPress={this.startGame}>
-              <View style={styles.startButton}>
-                <Text style={styles.buttonsText}>Start</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-          {finnished && <Text style={styles.winnerText}>Winner: {winner}</Text>}
-          <View style={styles.buttonWithTimer}>
-            <Text style={styles.timers}>{this.getPlayerTwoTime()}</Text>
-            <TouchableOpacity
-              disabled={this.checkPlayerTwo()}
-              onPress={this.changeTurn}>
-              <View style={[styles.buttons, styles.down, {width}]}>
-                <Text style={styles.buttonsText}>Player 2</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.buttonWithTimer}>
+          <TouchableOpacity
+            disabled={this.checkPlayerOne()}
+            onPress={this.changeTurn}>
+            <View style={[styles.buttons, styles.up, {width}]}>
+              <Text style={[styles.buttonsText, styles.rotatedText]}>
+                Player 1
+              </Text>
+            </View>
+          </TouchableOpacity>
+          <Text style={[styles.timers, styles.rotatedText]}>
+            {this.getPlayerOneTime()}
+          </Text>
         </View>
-      </>
+        {!finnished && started && <Turn player={turn} />}
+        {!started && (
+          <TouchableOpacity onPress={this.startGame}>
+            <View style={styles.startButton}>
+              <Text style={styles.buttonsText}>Start</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        {finnished && <Text style={styles.winnerText}>Winner: {winner}</Text>}
+        <View style={styles.buttonWithTimer}>
+          <Text style={styles.timers}>{this.getPlayerTwoTime()}</Text>
+          <TouchableOpacity
+            disabled={this.checkPlayerTwo()}
+            onPress={this.changeTurn}>
+            <View style={[styles.buttons, styles.down, {width}]}>
+              <Text style={styles.buttonsText}>Player 2</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </ToggleView>
     );
   }
 }
 
 const styles = StyleSheet.create({
   buttons: {
-    paddingVertical: 10,
+    paddingVertical: 40,
     alignItems: 'center',
   },
   up: {
